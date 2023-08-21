@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クライアント</title>
+  <style>
+    .fullscreen-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      margin: 10px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    
+    <canvas id="c1" width="160" height="96">
+      <video id="remote_video" autoplay style="height: 100%;"></video>
+    </canvas>
+    
+    <button class="fullscreen-button" onclick="toggleFullscreen()">全画面</button>
+  </div>
+  <div>
+    <textarea id="text_for_send_sdp" rows="5" cols="43"></textarea>
+    <textarea id="text_for_recv_sdp" rows="5" cols="43"></textarea>
+  </div>
+  <div>
+    <button onclick="prepare()">Prepare</button>
+    <button onclick="connect()">Connect</button>
+  </div>
+  <script src="main.js"></script>
+  <script>
+    function toggleFullscreen() {
+      var video = document.getElementById("remote_video");
+      if (video.requestFullscreen) {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          video.requestFullscreen();
+        }
+      } else if (video.mozRequestFullScreen) {
+        if (document.mozFullScreenElement) {
+          document.mozCancelFullScreen();
+        } else {
+          video.mozRequestFullScreen();
+        }
+      } else if (video.webkitRequestFullscreen) {
+        if (document.webkitFullscreenElement) {
+          document.webkitExitFullscreen();
+        } else {
+          video.webkitRequestFullscreen();
+        }
+      } else if (video.msRequestFullscreen) {
+        if (document.msFullscreenElement) {
+          document.msExitFullscreen();
+        } else {
+          video.msRequestFullscreen();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
