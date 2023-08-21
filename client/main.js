@@ -8,13 +8,14 @@ let peerConnection = null;
 // videoタグやtextareaなどのHTML要素
 const dom = {
   videos: {
-    local : document.getElementById('local_video'), // ローカル
-    remote: document.getElementById('remote_video'), // ローカル
+    local : document.getElementById('local_video'),
+    remote: document.getElementById('remote_video'),
   },
+  canvas: document.getElementById('c1'),
   sdp: {
     send: document.getElementById("text_for_send_sdp"),
     recv: document.getElementById("text_for_recv_sdp"),
-  }
+  },
 };
 
 //-----------------------------------------------------------------------------
@@ -128,28 +129,86 @@ function onIceCandidate (e)
   sendSessionDescription(description);
 }
 
-//-----------------------------------------------------------------------------
 // カメラ関係
-async function wakeupVideo() 
-{
-  const config = {video: {width: 3840, height: 2160}, audio: true};
+async function wakeupVideo() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const videoDevices = devices.filter(device => device.kind === 'videoinput');
+  
+  const config1 = {
+      video: {
+          deviceId: videoDevices[0].deviceId,
+          width: { exact: 4096 },
+          height: { exact: 2160 }
+      },
+      audio: true
+  };
 
-  const stream = await navigator.mediaDevices.getUserMedia(config);
+  const stream1 = await navigator.mediaDevices.getUserMedia(config1);
+  playVideo(dom.videos.local, stream1);
 
-  stream.getTracks().forEach((track) => {
-    peerConnection.addTrack(track, stream);
-  })
+  if (videoDevices[1]) {
+      const config2 = {
+          video: {
+              deviceId: videoDevices[1].deviceId,
+              width: { exact: 4096 },
+              height: { exact: 2160 }
+          }
+      };
 
-  playVideo(dom.videos.local, stream);
+      const stream2 = await navigator.mediaDevices.getUserMedia(config2);
+      playVideo(dom.videos.remote, stream2);  // Assuming `dom.videos.remote` is the element for the second camera's video
+  }
 }
 
-function playVideo(element, stream) 
-{
+function playVideo(element, stream) {
   element.srcObject = stream;
   element.play();
   element.volume = 0;
-  
+
   element.onloadedmetadata = function(e) {
-    console.log('Video resolution: ' + element.videoWidth + 'x' + element.videoHeight);
+      console.log('Video resolution: ' + element.videoWidth + 'x' + element.videoHeight);
+      drawVideoToCanvas(element, dom.canvas); // Add a second canvas for the second camera if necessary
   };
 }
+
+function drawVideoToCanvas(video, canvas) {
+  const context = canvas.getContext('2d');
+
+  function draw() {
+      if (video.paused || video.ended) {
+          return;
+      }
+
+      // キャンバスを黒でクリア
+      context.fillStyle = 'black';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      // キャンバスとビデオのアスペクト比を計算
+      const canvasAspectRatio = canvas.width / canvas.height;
+      const videoAspectRatio = video.videoWidth / video.videoHeight;
+
+      let drawWidth, drawHeight, xStart, yStart;
+
+      // アスペクト比に基づいて、ビデオの描画サイズと開始位置を決定
+      if (videoAspectRatio > canvasAspectRatio) {
+          drawWidth = canvas.width;
+          drawHeight = canvas.width / videoAspectRatio;
+          xStart = 0;
+          yStart = (canvas.height - drawHeight) / 2;
+      } else {
+          drawHeight = canvas.height;
+          drawWidth = canvas.height * videoAspectRatio;
+          xStart = (canvas.width - drawWidth) / 2;
+          yStart = 0;
+      }
+
+      // ビデオをキャンバス上に描画
+      context.drawImage(video, xStart, yStart, drawWidth, drawHeight);
+      
+      requestAnimationFrame(draw);
+
+  }
+
+  draw();
+}
+
