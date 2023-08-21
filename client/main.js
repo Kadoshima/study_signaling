@@ -156,7 +156,7 @@ async function wakeupVideo() {
       };
 
       const stream2 = await navigator.mediaDevices.getUserMedia(config2);
-      playVideo(dom.videos.remote, stream2);  // Assuming `dom.videos.remote` is the element for the second camera's video
+      playVideo(dom.videos.remote, stream2);
   }
 }
 
@@ -167,48 +167,30 @@ function playVideo(element, stream) {
 
   element.onloadedmetadata = function(e) {
       console.log('Video resolution: ' + element.videoWidth + 'x' + element.videoHeight);
-      drawVideoToCanvas(element, dom.canvas); // Add a second canvas for the second camera if necessary
+      drawVideoToCanvas();  // Modified function call
   };
 }
 
-function drawVideoToCanvas(video, canvas) {
-  const context = canvas.getContext('2d');
+function drawVideoToCanvas() {
+    const context = dom.canvas.getContext('2d');
 
-  function draw() {
-      if (video.paused || video.ended) {
-          return;
-      }
+    function draw() {
+        if (dom.videos.local.paused || dom.videos.local.ended || dom.videos.remote.paused || dom.videos.remote.ended) {
+            return;
+        }
 
-      // キャンバスを黒でクリア
-      context.fillStyle = 'black';
-      context.fillRect(0, 0, canvas.width, canvas.height);
+        // キャンバスを黒でクリア
+        context.fillStyle = 'black';
+        context.fillRect(0, 0, dom.canvas.width, dom.canvas.height);
 
-      // キャンバスとビデオのアスペクト比を計算
-      const canvasAspectRatio = canvas.width / canvas.height;
-      const videoAspectRatio = video.videoWidth / video.videoHeight;
+        // キャンバスの左半分にlocalの映像を描画
+        context.drawImage(dom.videos.local, 0, 0, dom.canvas.width / 2, dom.canvas.height);
 
-      let drawWidth, drawHeight, xStart, yStart;
+        // キャンバスの右半分にremoteの映像を描画
+        context.drawImage(dom.videos.remote, dom.canvas.width / 2, 0, dom.canvas.width / 2, dom.canvas.height);
+        
+        requestAnimationFrame(draw);
+    }
 
-      // アスペクト比に基づいて、ビデオの描画サイズと開始位置を決定
-      if (videoAspectRatio > canvasAspectRatio) {
-          drawWidth = canvas.width;
-          drawHeight = canvas.width / videoAspectRatio;
-          xStart = 0;
-          yStart = (canvas.height - drawHeight) / 2;
-      } else {
-          drawHeight = canvas.height;
-          drawWidth = canvas.height * videoAspectRatio;
-          xStart = (canvas.width - drawWidth) / 2;
-          yStart = 0;
-      }
-
-      // ビデオをキャンバス上に描画
-      context.drawImage(video, xStart, yStart, drawWidth, drawHeight);
-      
-      requestAnimationFrame(draw);
-
-  }
-
-  draw();
+    draw();
 }
-
